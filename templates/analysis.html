@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Analysis {{ sheet.session_id }}{% endblock %}
+{% block content %}
+<section class="summary-grid">
+  <div class="summary-main">
+    <p class="eyebrow">{{ sheet.candidate_id or "Candidate" }}</p>
+    <h1>{{ sheet.candidate_name or "Student Analysis" }}</h1>
+    <div class="scoreline">
+      <strong>{{ "%.2f"|format(sheet.total_score) }}</strong>
+      <span>/ {{ "%.2f"|format(sheet.max_score) }}</span>
+    </div>
+  </div>
+  <div class="metric"><span>Paper 1</span><strong>{{ "%.2f"|format(sheet.paper_scores.get("paper_1", 0)) }}</strong></div>
+  <div class="metric"><span>Paper 2</span><strong>{{ "%.2f"|format(sheet.paper_scores.get("paper_2", 0)) }}</strong></div>
+  <div class="metric"><span>Estimated Rank</span><strong>{{ sheet.estimated_rank }}</strong></div>
+</section>
+
+<section class="dashboard-grid">
+  <div class="panel">
+    <h2>Section Scores</h2>
+    <canvas id="sectionChart" data-session="{{ sheet.session_id }}"></canvas>
+  </div>
+  <div class="panel">
+    <h2>Attempts</h2>
+    <table>
+      <thead><tr><th>Section</th><th>Score</th><th>Attempted</th><th>Incorrect</th></tr></thead>
+      <tbody>
+      {% for section in sections %}
+        <tr>
+          <td>P{{ section.paper }} {{ section.subject }} {{ section.section }}</td>
+          <td>{{ section.score }} / {{ section.max_score }}</td>
+          <td>{{ section.attempted }}</td>
+          <td>{{ section.incorrect }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="nav-cards">
+  <a href="/analysis/{{ sheet.session_id }}/questions">Question-wise analysis</a>
+  <a href="/analysis/{{ sheet.session_id }}/rank">Detailed rank prediction</a>
+</section>
+{% endblock %}
+{% block scripts %}
+<script src="/static/app.js"></script>
+{% endblock %}

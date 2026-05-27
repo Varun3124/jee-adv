@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}Admin{% endblock %}
+{% block content %}
+<section class="page-head">
+  <div>
+    <p class="eyebrow">Protected console</p>
+    <h1>Admin Panel</h1>
+  </div>
+</section>
+
+<section class="admin-grid">
+  <div class="panel">
+    <h2>Answer Key Manager</h2>
+    <form action="/admin/answer-key" method="post" class="form-grid small">
+      <input name="paper" type="number" min="1" max="2" placeholder="Paper" required>
+      <input name="subject" placeholder="Subject" required>
+      <input name="section" placeholder="Section">
+      <input name="question_id" placeholder="Question ID" required>
+      <select name="answer_type"><option>single</option><option>multiple</option><option>numeric</option><option>text</option></select>
+      <input name="correct_answer" placeholder='Correct answer or ["A","C"]' required>
+      <input name="full_marks" type="number" step="0.01" value="4">
+      <input name="partial_marks" type="number" step="0.01" value="0">
+      <input name="negative_marks" type="number" step="0.01" value="0">
+      <textarea name="solution_text" placeholder="Solution text"></textarea>
+      <input name="solution_image_url" placeholder="Solution image URL">
+      <button class="primary" type="submit">Save key</button>
+    </form>
+    <form action="/admin/answer-key/import" method="post" enctype="multipart/form-data" class="inline-form">
+      <input type="file" name="file" accept="application/json" required>
+      <button type="submit">Import JSON</button>
+    </form>
+    <form action="/admin/answer-key/clear" method="post"><button class="danger" type="submit">Clear keys</button></form>
+    <p class="muted">{{ answer_keys|length }} keys stored</p>
+  </div>
+
+  <div class="panel">
+    <h2>Student Entries</h2>
+    <a class="primary" href="/admin/students">Manage Students</a>
+    <p class="muted">{{ active_student_count }} active entries</p>
+  </div>
+
+  <div class="panel">
+    <h2>Response Sheet Bulk Ingestion</h2>
+    <form action="/admin/ingest" method="post" class="form-grid">
+      <textarea name="urls" rows="10" placeholder="Paper 1 URL&#10;Paper 2 URL&#10;Paper 1 URL&#10;Paper 2 URL"></textarea>
+      <button class="primary" type="submit">Start ingestion</button>
+    </form>
+    <p class="muted">{{ response_count }} response sheets stored</p>
+  </div>
+
+  <div class="panel">
+    <h2>Reference Option Picker</h2>
+    <form action="/admin/option-picker" method="post" class="form-grid">
+      <input name="paper1_url" placeholder="Reference Paper 1 response-sheet URL" required>
+      <input name="paper2_url" placeholder="Reference Paper 2 response-sheet URL" required>
+      <button class="primary" type="submit">Load option images</button>
+    </form>
+    <p class="muted">Uses existing answer-key rows for marks and question type, then stores image hashes only.</p>
+  </div>
+
+  <div class="panel">
+    <h2>JoSAA Closing Ranks Import</h2>
+    <form action="/admin/josaa/import" method="post" enctype="multipart/form-data" class="form-grid">
+      <input type="file" name="file" accept=".csv,text/csv" required>
+      <select name="mode"><option value="append">Append</option><option value="replace">Replace</option></select>
+      <button class="primary" type="submit">Import CSV</button>
+    </form>
+    <p class="muted">{{ josaa_count }} closing-rank rows stored</p>
+  </div>
+
+  <div class="panel">
+    <h2>Config</h2>
+    <form action="/admin/config" method="post" class="form-grid small">
+      <label><span>Total candidates</span><input name="total_candidates" type="number" value="{{ total_candidates }}"></label>
+      <label><span>Rank buffer %</span><input name="rank_buffer_percent" type="number" value="{{ rank_buffer_percent }}"></label>
+      <button class="primary" type="submit">Save config</button>
+    </form>
+    <form action="/admin/reset-pool" method="post"><button class="danger" type="submit">Reset pool</button></form>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Submit Response Sheets{% endblock %}
+{% block content %}
+<section class="hero">
+  <div>
+    <p class="eyebrow">Rank predictor and marks analysis</p>
+    <h1>JEE Advanced 2026 Score Dashboard</h1>
+    <p class="lede">Evaluate both papers, compare section performance, and estimate rank from the stored submission pool.</p>
+  </div>
+</section>
+
+<section class="panel">
+  {% if error %}<div class="alert">{{ error }}</div>{% endif %}
+  <form id="submit-form" action="/submit" method="post" class="form-grid">
+    <label>
+      <span>Paper 1 Response Sheet URL</span>
+      <input name="paper1_url" type="url" required placeholder="https://cdn3.digialm.com/...">
+    </label>
+    <label>
+      <span>Paper 2 Response Sheet URL</span>
+      <input name="paper2_url" type="url" required placeholder="https://cdn3.digialm.com/...">
+    </label>
+    <button class="primary" type="submit">Analyze</button>
+    <div id="loading" class="loading" hidden>Fetching and evaluating response sheets...</div>
+  </form>
+</section>
+{% endblock %}
+{% block scripts %}
+<script src="/static/app.js"></script>
+{% endblock %}

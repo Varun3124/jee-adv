@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Rank {{ sheet.session_id }}{% endblock %}
+{% block content %}
+<section class="page-head">
+  <div>
+    <p class="eyebrow">{{ sheet.candidate_name or sheet.candidate_id or "Analysis" }}</p>
+    <h1>Rank Prediction</h1>
+  </div>
+  <a class="ghost" href="/analysis/{{ sheet.session_id }}">Back</a>
+</section>
+
+<section class="summary-grid compact">
+  <div class="metric"><span>Estimated rank</span><strong>{{ sheet.estimated_rank }}</strong></div>
+  <div class="metric"><span>Pool rank</span><strong>{{ sheet.pool_rank }}</strong></div>
+  <div class="metric"><span>Total candidates</span><strong>{{ sheet.total_candidates }}</strong></div>
+  <div class="metric"><span>Percentile</span><strong>{{ "%.2f"|format(sheet.percentile or 0) }}</strong></div>
+</section>
+
+<section class="dashboard-grid">
+  <div class="panel">
+    <h2>Score Distribution</h2>
+    <canvas id="distributionChart" data-session="{{ sheet.session_id }}"></canvas>
+  </div>
+  <div class="panel">
+    <h2>JoSAA 2025 Predictor</h2>
+    <form id="josaaForm" class="inline-form" data-session="{{ sheet.session_id }}">
+      <select name="category">
+        <option>OPEN</option><option>EWS</option><option>OBC-NCL</option><option>SC</option><option>ST</option>
+      </select>
+      <select name="gender">
+        <option>Gender-Neutral</option><option>Female-only (including Supernumerary)</option>
+      </select>
+      <button class="primary" type="submit">Search</button>
+    </form>
+    <table id="josaaTable">
+      <thead><tr><th>Institute</th><th>Program</th><th>Round</th><th>Closing Rank</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}
+{% block scripts %}
+<script src="/static/app.js"></script>
+{% endblock %}

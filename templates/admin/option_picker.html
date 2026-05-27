@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Option Picker{% endblock %}
+{% block content %}
+<section class="page-head">
+  <div>
+    <p class="eyebrow">Protected console</p>
+    <h1>Option Picker</h1>
+    <p class="lede">Select the correct option image for MCQ questions and all correct option images for MSQ questions. Labels are used only for display.</p>
+  </div>
+  <a class="ghost" href="/admin">Back to admin</a>
+</section>
+
+{% if not rows %}
+<section class="panel">
+  <h2>No eligible questions found</h2>
+  <p class="muted">Import or create answer-key rows first, then load the reference response sheets again.</p>
+</section>
+{% endif %}
+
+<section class="option-picker-list">
+  {% for row in rows %}
+    {% set q = row.question %}
+    {% set input_type = "checkbox" if row.is_multiple else "radio" %}
+    <form action="/admin/option-key" method="post" class="panel option-picker-card">
+      <div class="qdetail-head">
+        <div>
+          <h2>Paper {{ q.paper }} · {{ q.subject }} · {{ q.section }}</h2>
+          <p class="muted">Question ID {{ q.question_id }} · {{ q.question_type or row.key.answer_type|upper }}{% if row.is_hashed %} · hashes saved{% endif %}</p>
+        </div>
+        <button class="primary" type="submit">Save hash key</button>
+      </div>
+      <input type="hidden" name="paper" value="{{ q.paper }}">
+      <input type="hidden" name="question_id" value="{{ q.question_id }}">
+      <div class="option-image-grid">
+        {% for label, url in q.option_image_urls.items() %}
+          <label class="option-image-choice">
+            <input type="{{ input_type }}" name="selected_image_url" value="{{ url }}">
+            <span>{{ label }}</span>
+            <img src="{{ url }}" alt="Option {{ label }} image">
+          </label>
+        {% endfor %}
+      </div>
+    </form>
+  {% endfor %}
+</section>
+{% endblock %}

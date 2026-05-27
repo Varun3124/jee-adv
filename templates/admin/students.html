@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block title %}Student Entries — Admin{% endblock %}
+{% block content %}
+<section class="page-head">
+  <div>
+    <p class="eyebrow">Admin</p>
+    <h1>Student Entries</h1>
+  </div>
+  <a class="ghost" href="/admin">← Back to Admin</a>
+</section>
+
+<p class="summary-counts">{{ active_count }} active · {{ deleted_count }} deleted · {{ total_shown }} shown</p>
+
+<form method="get" action="/admin/students" class="filter-bar">
+  <input name="roll" placeholder="Roll Number" value="{{ filters.roll }}">
+  <input name="name" placeholder="Name" value="{{ filters.name }}">
+  <input name="min_score" type="number" step="0.01" placeholder="Min Score" value="{{ filters.min_score }}">
+  <input name="max_score" type="number" step="0.01" placeholder="Max Score" value="{{ filters.max_score }}">
+  <input name="date_from" type="date" value="{{ filters.date_from }}">
+  <input name="date_to" type="date" value="{{ filters.date_to }}">
+  <label>
+    <input type="checkbox" name="include_deleted" {% if filters.include_deleted %}checked{% endif %}>
+    Include deleted
+  </label>
+  <button type="submit">Filter</button>
+  <a class="ghost" href="/admin/students">Clear</a>
+</form>
+
+{% if error %}
+<div class="alert-error panel">{{ error }}</div>
+{% endif %}
+{% if info %}
+<div class="alert-info panel">{{ info }}</div>
+{% endif %}
+
+<form method="post" action="/admin/students/bulk-delete" id="bulkDeleteForm"></form>
+
+<div class="bulk-actions">
+  <button type="submit" class="danger" id="bulkDeleteBtn" form="bulkDeleteForm">Delete Selected</button>
+</div>
+
+<div class="panel">
+  <table class="admin-table">
+    <thead>
+      <tr>
+        <th><input type="checkbox" id="selectAll" form="bulkDeleteForm"></th>
+        <th>Roll Number</th>
+        <th>Name</th>
+        <th>Submitted</th>
+        <th>P1</th>
+        <th>P2</th>
+        <th>Total</th>
+        <th>Status</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in students %}
+      <tr class="{% if row.is_deleted %}row-deleted{% endif %}">
+        <td>
+          {% if not row.is_deleted %}
+          <input type="checkbox" name="ids" value="{{ row.id }}" form="bulkDeleteForm">
+          {% endif %}
+        </td>
+        <td>{{ row.candidate_id or '—' }}</td>
+        <td>{{ row.candidate_name or '—' }}</td>
+        <td>{{ row.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+        <td>{{ row.paper_scores.get('1', 0) }}</td>
+        <td>{{ row.paper_scores.get('2', 0) }}</td>
+        <td>{{ '%.1f'|format(row.total_score) }}</td>
+        <td>
+          <span class="status-badge {% if row.is_deleted %}status-deleted{% else %}status-active{% endif %}">
+            {{ 'Deleted' if row.is_deleted else 'Active' }}
+          </span>
+        </td>
+        <td class="td-actions">
+          <a href="/admin/students/{{ row.id }}/questions" class="action-link">View</a>
+          {% if not row.is_deleted %}
+          <form method="post" action="/admin/students/{{ row.id }}/delete">
+            <input type="hidden" name="page" value="{{ page }}">
+            <input type="hidden" name="roll" value="{{ filters.roll }}">
+            <input type="hidden" name="name" value="{{ filters.name }}">
+            <input type="hidden" name="min_score" value="{{ filters.min_score }}">
+            <input type="hidden" name="max_score" value="{{ filters.max_score }}">
+            <input type="hidden" name="date_from" value="{{ filters.date_from }}">
+            <input type="hidden" name="date_to" value="{{ filters.date_to }}">
+            {% if filters.include_deleted %}
+            <input type="hidden" name="include_deleted" value="on">
+            {% endif %}
+            <button class="action-btn danger-text" type="submit" onclick="return confirm('Delete this entry?')">Delete</button>
+          </form>
+          {% else %}
+          <form method="post" action="/admin/students/{{ row.id }}/restore">
+            <button class="action-btn restore-text" type="submit">Restore</button>
+          </form>
+          {% endif %}
+        </td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="9">No entries found.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% if total_pages > 1 %}
+<div class="pagination">
+  {% if page > 1 %}
+  <a href="?{{ pagination_qs(page - 1) }}">← Prev</a>
+  {% endif %}
+  {% for p in range(1, total_pages + 1) %}
+    {% if p >= page - 3 and p <= page + 3 %}
+    <a href="?{{ pagination_qs(p) }}" class="{% if p == page %}active{% endif %}">{{ p }}</a>
+    {% elif p == page - 4 or p == page + 4 %}
+    <span>…</span>
+    {% endif %}
+  {% endfor %}
+  {% if page < total_pages %}
+  <a href="?{{ pagination_qs(page + 1) }}">Next →</a>
+  {% endif %}
+</div>
+{% endif %}
+
+{% endblock %}
+{% block scripts %}
+<script src="/static/app.js"></script>
+{% endblock %}

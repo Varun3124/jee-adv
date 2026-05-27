@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Questions — {{ sheet.candidate_name or sheet.candidate_id or 'Student' }}{% endblock %}
+{% block content %}
+<section class="page-head">
+  <div>
+    <p class="eyebrow">{{ sheet.candidate_name or sheet.candidate_id or 'Student' }}</p>
+    <h1>Question-wise Analysis</h1>
+  </div>
+  <a class="ghost" href="/admin/students">← Back to Students</a>
+</section>
+
+{% if sheet.is_deleted %}
+<div class="deleted-banner panel">⚠ This entry has been soft-deleted and is excluded from public views and statistics.</div>
+{% endif %}
+
+<section class="panel">
+  <div class="tabs" data-filter-group="paper">
+    <button class="tab active" data-paper="1">Paper 1</button>
+    <button class="tab" data-paper="2">Paper 2</button>
+  </div>
+  <div class="tabs" data-filter-group="subject">
+    <button class="tab active" data-subject="Physics">Physics</button>
+    <button class="tab" data-subject="Chemistry">Chemistry</button>
+    <button class="tab" data-subject="Mathematics">Mathematics</button>
+  </div>
+
+  <div class="question-grid" id="questionGrid">
+    {% for row in rows %}
+      {% set q = row.question %}
+      <button class="qchip {{ q.result }}" data-paper="{{ q.paper }}" data-subject="{{ q.subject }}" data-target="q-{{ q.id }}">
+        {{ loop.index }}
+      </button>
+    {% endfor %}
+  </div>
+
+  <div class="question-details">
+    {% for row in rows %}
+      {% set q = row.question %}
+      <article class="qdetail" id="q-{{ q.id }}" data-paper="{{ q.paper }}" data-subject="{{ q.subject }}">
+        <div class="qdetail-head">
+          <h2>P{{ q.paper }} {{ q.subject }} · {{ q.section }}</h2>
+          <span class="badge {{ q.result }}">{{ q.result.replace("_", " ") }}</span>
+        </div>
+        <dl class="detail-list">
+          <div><dt>Question ID</dt><dd>{{ q.question_id }}</dd></div>
+          <div><dt>Student response</dt><dd>{{ q.student_response or "Unattempted" }}</dd></div>
+          <div><dt>Correct answer</dt><dd>{{ row.correct_answer_display }}</dd></div>
+          <div><dt>Marks</dt><dd>{{ q.marks_awarded }} / {{ q.max_marks }}</dd></div>
+          <div><dt>Pool correct rate</dt><dd>{{ row.difficulty }}%</dd></div>
+        </dl>
+        <div class="solution">
+          {% if row.solution_text %}<p>{{ row.solution_text }}</p>{% endif %}
+          {% if row.solution_image_url %}<img src="{{ row.solution_image_url }}" alt="Solution image">{% endif %}
+          {% if not row.solution_text and not row.solution_image_url %}<p>Solution coming soon.</p>{% endif %}
+        </div>
+      </article>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}
+{% block scripts %}
+<script src="/static/app.js"></script>
+{% endblock %}
