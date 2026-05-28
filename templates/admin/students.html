@@ -75,6 +75,19 @@
         </td>
         <td class="td-actions">
           <a href="/admin/students/{{ row.id }}/questions" class="action-link">View</a>
+          <form method="post" action="/admin/students/{{ row.id }}/recheck">
+            <input type="hidden" name="page" value="{{ page }}">
+            <input type="hidden" name="roll" value="{{ filters.roll }}">
+            <input type="hidden" name="name" value="{{ filters.name }}">
+            <input type="hidden" name="min_score" value="{{ filters.min_score }}">
+            <input type="hidden" name="max_score" value="{{ filters.max_score }}">
+            <input type="hidden" name="date_from" value="{{ filters.date_from }}">
+            <input type="hidden" name="date_to" value="{{ filters.date_to }}">
+            {% if filters.include_deleted %}
+            <input type="hidden" name="include_deleted" value="on">
+            {% endif %}
+            <button class="action-btn" type="submit" onclick="return confirm('Re-check this entry using the current answer keys?')">Re-check</button>
+          </form>
           {% if not row.is_deleted %}
           <form method="post" action="/admin/students/{{ row.id }}/delete">
             <input type="hidden" name="page" value="{{ page }}">
