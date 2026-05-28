@@ -22,6 +22,7 @@ from services.image_hash import fingerprint_urls
 from services.josaa import import_josaa_rows, parse_josaa_csv
 from services.parser import fetch_response_sheet, parse_response_sheet
 from services.rank import clear_pool, get_config_int, question_difficulty_map, set_config
+from services.answer_key_importer import refresh_submission
 from services.submissions import create_submission_from_urls
 
 
@@ -317,6 +318,22 @@ async def restore_student(
     sheet.is_deleted = False
     await session.commit()
     return _redirect_students(request, info="Entry restored.")
+
+
+@router.post("/students/{sheet_id}/recheck")
+async def recheck_student(
+    sheet_id: int,
+    request: Request,
+    _: str = Depends(require_admin),
+    session: AsyncSession = Depends(get_session),
+):
+    sheet = await session.get(ResponseSheet, sheet_id)
+    if not sheet:
+        raise HTTPException(status_code=404, detail="Student entry not found")
+
+    await refresh_submission(session, sheet_id)
+    await session.commit()
+    return _redirect_students(request, info="Entry re-checked against current answer keys.")
 
 
 def _redirect_students(request: Request, error: str = "", info: str = "") -> RedirectResponse:

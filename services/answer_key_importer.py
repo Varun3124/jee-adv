@@ -59,35 +59,52 @@ async def refresh_existing_submissions(session: AsyncSession) -> int:
     answer_keys = {(key.paper, key.question_id): key for key in (await session.scalars(select(AnswerKey))).all()}
     sheets = (await session.scalars(select(ResponseSheet))).all()
     for sheet in sheets:
-        papers = [ParsedPaper(**paper) for paper in sheet.raw_parsed.get("papers", [])]
-        evaluated = await evaluate_submission(papers, answer_keys)
-        await session.execute(delete(QuestionResponse).where(QuestionResponse.response_sheet_id == sheet.id))
-        session.add_all(
-            QuestionResponse(
-                response_sheet_id=sheet.id,
-                paper=result.paper,
-                subject=result.subject,
-                section=result.section,
-                question_id=result.question_id,
-                status=result.status,
-                student_response=result.student_response,
-                correct_answer=result.correct_answer,
-                result=result.result,
-                marks_awarded=result.marks_awarded,
-                max_marks=result.max_marks,
-            )
-            for result in evaluated.question_results
-        )
-        sheet.paper_scores = evaluated.paper_scores
-        sheet.section_scores = evaluated.section_scores
-        sheet.total_score = evaluated.total_score
-        sheet.max_score = evaluated.max_score
-        ranks = await rank_for_score(session, sheet.total_score)
-        sheet.estimated_rank = int(ranks["estimated_rank"])
-        sheet.pool_rank = int(ranks["pool_rank"])
-        sheet.percentile = float(ranks["percentile"])
-        sheet.total_candidates = int(ranks["total_candidates"])
+        await _refresh_sheet_from_answer_keys(session, sheet, answer_keys)
     return len(sheets)
+
+
+async def refresh_submission(session: AsyncSession, sheet_id: int) -> ResponseSheet:
+    answer_keys = {(key.paper, key.question_id): key for key in (await session.scalars(select(AnswerKey))).all()}
+    sheet = await session.get(ResponseSheet, sheet_id)
+    if sheet is None:
+        raise ValueError(f"Student entry not found: {sheet_id}")
+    await _refresh_sheet_from_answer_keys(session, sheet, answer_keys)
+    return sheet
+
+
+async def _refresh_sheet_from_answer_keys(
+    session: AsyncSession,
+    sheet: ResponseSheet,
+    answer_keys: dict[tuple[int, str], AnswerKey],
+) -> None:
+    papers = [ParsedPaper(**paper) for paper in sheet.raw_parsed.get("papers", [])]
+    evaluated = await evaluate_submission(papers, answer_keys)
+    await session.execute(delete(QuestionResponse).where(QuestionResponse.response_sheet_id == sheet.id))
+    session.add_all(
+        QuestionResponse(
+            response_sheet_id=sheet.id,
+            paper=result.paper,
+            subject=result.subject,
+            section=result.section,
+            question_id=result.question_id,
+            status=result.status,
+            student_response=result.student_response,
+            correct_answer=result.correct_answer,
+            result=result.result,
+            marks_awarded=result.marks_awarded,
+            max_marks=result.max_marks,
+        )
+        for result in evaluated.question_results
+    )
+    sheet.paper_scores = evaluated.paper_scores
+    sheet.section_scores = evaluated.section_scores
+    sheet.total_score = evaluated.total_score
+    sheet.max_score = evaluated.max_score
+    ranks = await rank_for_score(session, sheet.total_score)
+    sheet.estimated_rank = int(ranks["estimated_rank"])
+    sheet.pool_rank = int(ranks["pool_rank"])
+    sheet.percentile = float(ranks["percentile"])
+    sheet.total_candidates = int(ranks["total_candidates"])
 
 
 def _question_ids_by_global_number(paper: int) -> dict[int, str]:

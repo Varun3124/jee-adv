@@ -9,7 +9,8 @@ from sqlalchemy.pool import StaticPool
 
 from database import Base, get_session
 from main import app
-from models import QuestionResponse, ResponseSheet
+from models import AnswerKey, QuestionResponse, ResponseSheet
+from schemas import ParsedPaper, ParsedQuestion
 from services.rank import rank_for_score, score_distribution, question_difficulty_map
 
 
@@ -160,6 +161,33 @@ def test_admin_student_questions_view(client, session_factory):
     assert "This entry has been soft-deleted" in response.text
 
 
+def test_admin_recheck_updates_entry_against_current_answer_keys(client, session_factory):
+    sheet_id = asyncio.run(_seed_recheck_data(session_factory))
+
+    response = client.post(f"/admin/students/{sheet_id}/recheck", auth=("admin", "change-me"))
+    assert response.status_code == 303
+
+    async def load_state():
+        async with session_factory() as session:
+            sheet = await session.get(ResponseSheet, sheet_id)
+            questions = (
+                await session.scalars(
+                    select(QuestionResponse).where(QuestionResponse.response_sheet_id == sheet_id)
+                )
+            ).all()
+            key = await session.scalar(select(AnswerKey).where(AnswerKey.paper == 1, AnswerKey.question_id == "q1"))
+            return sheet, questions, key
+
+    sheet, questions, key = asyncio.run(load_state())
+    assert key.correct_answer == "B"
+    assert sheet.total_score == -1.0
+    assert sheet.paper_scores == {"paper_1": -1.0}
+    assert sheet.pool_rank == 1
+    assert len(questions) == 1
+    assert questions[0].result == "incorrect"
+    assert questions[0].marks_awarded == -1.0
+
+
 def test_single_delete_and_restore(client, session_factory):
     s1_id, _, _ = asyncio.run(_seed_data(session_factory))
     
@@ -284,3 +312,92 @@ def test_public_routes_exclude_deleted(client, session_factory):
     
     response = client.get("/api/analysis/session3/section-breakdown")
     assert response.status_code == 404
+
+
+async def _seed_recheck_data(session_factory):
+    async with session_factory() as session:
+        sheet = ResponseSheet(
+            session_id="session-recheck",
+            submission_hash="hash-recheck",
+            paper1_url="url1",
+            paper2_url="url2",
+            candidate_id="ROLL99",
+            candidate_name="Recheck",
+            raw_parsed={
+                "papers": [
+                    ParsedPaper(
+                        paper=1,
+                        candidate_id="ROLL99",
+                        candidate_name="Recheck",
+                        source_url="url1",
+                        questions=[
+                            ParsedQuestion(
+                                paper=1,
+                                subject="Physics",
+                                section="Sec1",
+                                question_id="q1",
+                                status="Answered",
+                                response="A",
+                            )
+                        ],
+                    ).model_dump()
+                ]
+            },
+            paper_scores={"paper_1": 4.0},
+            section_scores={
+                "paper_1:Physics:Sec1": {
+                    "paper": 1,
+                    "subject": "Physics",
+                    "section": "Sec1",
+                    "score": 4.0,
+                    "max_score": 4.0,
+                    "attempted": 1,
+                    "unattempted": 0,
+                    "correct": 1,
+                    "partial": 0,
+                    "incorrect": 0,
+                    "manual_review": 0,
+                    "missing_key": 0,
+                }
+            },
+            total_score=4.0,
+            max_score=4.0,
+            created_at=datetime.utcnow(),
+            is_deleted=False,
+        )
+        session.add(sheet)
+        session.add(
+            AnswerKey(
+                paper=1,
+                subject="Physics",
+                section="Sec1",
+                question_id="q1",
+                answer_type="single",
+                correct_answer="A",
+                full_marks=4,
+                partial_marks=0,
+                negative_marks=-1,
+            )
+        )
+        await session.commit()
+        session.add(
+            QuestionResponse(
+                response_sheet_id=sheet.id,
+                paper=1,
+                subject="Physics",
+                section="Sec1",
+                question_id="q1",
+                status="Answered",
+                student_response="A",
+                correct_answer="A",
+                result="correct",
+                marks_awarded=4,
+                max_marks=4,
+            )
+        )
+        await session.commit()
+
+        key = await session.scalar(select(AnswerKey).where(AnswerKey.paper == 1, AnswerKey.question_id == "q1"))
+        key.correct_answer = "B"
+        await session.commit()
+        return sheet.id
