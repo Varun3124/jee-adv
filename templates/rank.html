@@ -10,7 +10,7 @@
 </section>
 
 <section class="summary-grid compact">
-  <div class="metric"><span>Estimated rank</span><strong>{{ sheet.estimated_rank }}</strong></div>
+  <div class="metric"><span>Estimated rank</span><strong>{{ estimated_rank_display or sheet.estimated_rank }}</strong></div>
   <div class="metric"><span>Pool rank</span><strong>{{ sheet.pool_rank }}</strong></div>
   <div class="metric"><span>Total candidates</span><strong>{{ sheet.total_candidates }}</strong></div>
   <div class="metric"><span>Percentile</span><strong>{{ "%.2f"|format(sheet.percentile or 0) }}</strong></div>

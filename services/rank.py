@@ -27,7 +27,19 @@ async def set_config(session: AsyncSession, key: str, value: str | int) -> None:
         row.value = str(value)
 
 
-async def rank_for_score(session: AsyncSession, score: float) -> dict[str, int | float]:
+def predict_rank_band(score: float, fallback_rank: int | None = None) -> dict[str, int | str]:
+    if score >= 300:
+        return {"estimated_rank": 20, "estimated_rank_label": "Under 20"}
+    if score >= 270:
+        return {"estimated_rank": 100, "estimated_rank_label": "Under 100"}
+    if score >= 200:
+        return {"estimated_rank": 300, "estimated_rank_label": "Under 300"}
+
+    estimated_rank = max(1, int(fallback_rank or 1))
+    return {"estimated_rank": estimated_rank, "estimated_rank_label": f"Approx. {estimated_rank}"}
+
+
+async def rank_for_score(session: AsyncSession, score: float) -> dict[str, int | float | str]:
     settings = get_settings()
     total_candidates = await get_config_int(session, "total_candidates", settings.total_candidates)
     active_filter = ResponseSheet.is_deleted == False  # noqa: E712
@@ -36,11 +48,13 @@ async def rank_for_score(session: AsyncSession, score: float) -> dict[str, int |
     lower_or_equal = await session.scalar(select(func.count(ResponseSheet.id)).where(active_filter, ResponseSheet.total_score <= score)) or 0
     pool_rank = int(higher) + 1
     percentile = round((float(lower_or_equal) / float(pool_size) * 100), 2) if pool_size else 100.0
-    estimated_rank = math.ceil(pool_rank / max(int(pool_size), 1) * int(total_candidates))
+    legacy_estimated_rank = math.ceil(pool_rank / max(int(pool_size), 1) * int(total_candidates))
+    band = predict_rank_band(score, legacy_estimated_rank)
     return {
         "pool_size": int(pool_size),
         "pool_rank": pool_rank,
-        "estimated_rank": max(1, estimated_rank),
+        "estimated_rank": max(1, int(band["estimated_rank"])),
+        "estimated_rank_label": band["estimated_rank_label"],
         "percentile": percentile,
         "total_candidates": int(total_candidates),
     }

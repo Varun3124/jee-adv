@@ -9,7 +9,7 @@ from sqlalchemy.orm import selectinload
 
 from database import get_session
 from models import AnswerKey, QuestionResponse, ResponseSheet
-from services.rank import question_difficulty_map
+from services.rank import predict_rank_band, question_difficulty_map
 from services.submissions import create_submission_from_urls
 
 
@@ -75,7 +75,8 @@ async def questions(session_id: str, request: Request, session: AsyncSession = D
 @router.get("/analysis/{session_id}/rank")
 async def rank_page(session_id: str, request: Request, session: AsyncSession = Depends(get_session)):
     sheet = await _get_sheet(session, session_id)
-    return templates.TemplateResponse(request, "rank.html", {"sheet": sheet})
+    estimated_rank_display = predict_rank_band(float(sheet.total_score), int(sheet.estimated_rank or 0))["estimated_rank_label"]
+    return templates.TemplateResponse(request, "rank.html", {"sheet": sheet, "estimated_rank_display": estimated_rank_display})
 
 
 async def _get_sheet(session: AsyncSession, session_id: str) -> ResponseSheet:

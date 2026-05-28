@@ -65,8 +65,8 @@
         <td>{{ row.candidate_id or '—' }}</td>
         <td>{{ row.candidate_name or '—' }}</td>
         <td>{{ row.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
-        <td>{{ row.paper_scores.get('1', 0) }}</td>
-        <td>{{ row.paper_scores.get('2', 0) }}</td>
+        <td>{{ "%.2f"|format(row.paper_scores.get("paper_1", 0)) }}</td>
+        <td>{{ "%.2f"|format(row.paper_scores.get("paper_2", 0)) }}</td>
         <td>{{ '%.1f'|format(row.total_score) }}</td>
         <td>
           <span class="status-badge {% if row.is_deleted %}status-deleted{% else %}status-active{% endif %}">
